@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  shorturl:
+    container_name: shorturl
+    image: ging0044/shorturl
+    restart: always
+    command: ["npm", "run", "start"]
+    ports:
+      - "3000"
+    networks:
+      - traefik
+      - redisurl
+    labels:
+      traefik.docker.network: traefik
+      traefik.geturl.frontend.rule: "Host:localhost;Method:GET;Path:/{id:[^a-zA-Z0-9_]+}"
+      traefik.addurl.frontend.rule: "Host:localhost;Method:GET;Path:/;Query:u={url}"
+      traefik.backend: shorturl
+      traefik.port: 3000
+      traefik.protocol: http
+    depends_on:
+      - redis
+
+  redis:
+    container_name: redisurl
+    image: redis:alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: on-failure
+    hostname: redis
+    networks:
+      - redisurl
+    volumes:
+      - shorturl_redis_data:/data
+    labels:
+      traefik.enable: false
+
+networks:
+  traefik:
+    external: true
+  redisurl:
+    external: false
+
+volumes:
+  shorturl_redis_data:
